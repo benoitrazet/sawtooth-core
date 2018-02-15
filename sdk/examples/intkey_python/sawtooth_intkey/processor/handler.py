@@ -111,7 +111,7 @@ class IntkeyTransactionHandler(TransactionHandler):
     def apply(self, transaction, context):
         verb, name, value = _unpack_transaction(transaction)
 
-        t = timestamp(context)
+        #t = timestamp(context)
         state = _get_state_data(name, context)
 
         updated_state = _do_intkey(verb, name, value, state)

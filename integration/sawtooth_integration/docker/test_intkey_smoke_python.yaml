@@ -60,7 +60,7 @@ services:
           -o config.batch && \
         sawadm genesis \
           config-genesis.batch config.batch && \
-        sawtooth-validator --endpoint tcp://validator:8800 \
+        sawtooth-validator -v --endpoint tcp://validator:8800 \
             --bind component:tcp://eth0:4004 \
             --bind network:tcp://eth0:8800 \
     \""
@@ -126,6 +126,7 @@ services:
     #     -s /project/sawtooth-core/integration/sawtooth_integration/tests
     #     test_intkey_smoke.TestIntkeySmoke
     #command: nose2-3 -c /project/sawtooth-core/integration/sawtooth_integration/nose2.cfg -v -s /project/sawtooth-core/integration/sawtooth_integration/tests test_intkey_smoke.TestIntkeySmoke
+    # command: for i in {1..100}; do nose2-3 -c /project/sawtooth-core/integration/sawtooth_integration/nose2.cfg -v -s /project/sawtooth-core/integration/sawtooth_integration/tests test_intkey_smoke.TestIntkeySmoke & sleep 0.1 ; done
     command: tail -f /dev/null
     stop_signal: SIGKILL
     environment:
