@@ -23,6 +23,7 @@ import urllib.request
 import urllib.error
 import json
 from base64 import b64decode
+from time import sleep
 
 import cbor
 
@@ -33,14 +34,16 @@ from sawtooth_integration.tests.integration_tools import wait_for_rest_apis
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
-WAIT = 300
+WAIT = 5
 INTKEY_PREFIX = '1cf126'
 
+# Not associative commutative
+NASSCOM= 'nasscom'
 
 class TestIntkeySmoke(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        wait_for_rest_apis(['rest-api:8008'])
+        wait_for_rest_apis(['rest-api-0:8008'])
 
     def test_intkey_smoke(self):
         '''
@@ -64,27 +67,45 @@ class TestIntkeySmoke(unittest.TestCase):
         6. Send the batch of valid transactions, again altering the state.
         '''
 
-        self.verifier = IntkeyTestVerifier()
+        # self.verifier = IntkeyTestVerifier()
 
-        populate, valid_txns, invalid_txns = self.make_txn_batches()
+        # populate, valid_txns, invalid_txns = self.make_txn_batches()
 
-        self.verify_empty_state()
+        # self.verify_empty_state()
 
-        batches = (
-            populate,
-            valid_txns,
-            invalid_txns,
-            valid_txns,
-            populate,
-            valid_txns
-        )
+        # batches = (
+        #     populate,
+        #     valid_txns,
+        #     invalid_txns,
+        #     valid_txns,
+        #     populate,
+        #     valid_txns
+        # )
 
-        how_many_updates = 0
+        # how_many_updates = 0
 
-        for batch in batches:
-            if batch == valid_txns:
-                how_many_updates += 1
-            self.post_and_verify(batch, how_many_updates)
+        # for batch in batches:
+        #     if batch == valid_txns:
+        #         how_many_updates += 1
+        #     self.post_and_verify(batch, how_many_updates)
+
+        init_append()
+        send_append('-0', 10)
+        send_append('-1', 110)
+        send_append('-2', 2220)
+        send_append('-3', 33330)
+        send_append('-4', 444440)
+        send_append('-0', 8888880)
+        send_append('-1', 11111110)
+        send_append('-2', 222222220)
+        send_append('-4', 4444444440)
+        send_append('-3', 33333333330)
+        send_append('-3', 333333333330)
+        send_append('-0', 8888888888880)
+        send_append('-2', 22222222222220)
+        log_all_appends()
+        
+        self.assertEqual(res,'')
 
     # assertions
 
@@ -120,33 +141,62 @@ class TestIntkeySmoke(unittest.TestCase):
 
 # rest_api calls
 
+def init_append():
+    triple = ('set', NASSCOM, 0)
+    batch = IntkeyMessageFactory().create_batch([triple])
+    LOGGER.info('Posting batch')
+    _post_batch(batch)
+    
 
-def _post_batch(batch):
+def send_append(api_nb, value):
+    triple = ('append', NASSCOM, value)
+    batch = IntkeyMessageFactory().create_batch([triple])
+    LOGGER.info('Posting batch')
+    _post_batch(batch, api_nb=api_nb)
+    sleep(5)
+    log_all_appends()
+    sleep(5)
+
+def log_all_appends():
+    res0 = _get_data(api_nb='-0')
+    res1 = _get_data(api_nb='-1')
+    res2 = _get_data(api_nb='-2')
+    res3 = _get_data(api_nb='-3')
+    res4 = _get_data(api_nb='-4')
+    r = [res0,res1,res2,res3,res4]
+    LOGGER.info('\n V0 {} \n V1 {} \n V2 {}, \n V3 {}, \n V4 {}'.format(r[0], r[1], r[2], r[3], r[4]))
+    LOGGER.info('The nasscom value for each validator should be the same')
+
+    
+def _post_batch(batch, api_nb='-0'):
     headers = {'Content-Type': 'application/octet-stream'}
     response = _query_rest_api(
         '/batches',
-        data=batch, headers=headers, expected_code=202)
+        data=batch, headers=headers, expected_code=202, api_nb=api_nb)
     response = _submit_request('{}&wait={}'.format(response['link'], WAIT))
     return response
 
 
-def _get_data():
-    state = _get_state()
+        
+
+def _get_data(api_nb='-0'):
+    state = _get_state(api_nb=api_nb)
     # state is a list of dictionaries: { data: ..., address: ... }
     dicts = [cbor.loads(b64decode(entry['data'])) for entry in state]
     data = {k: v for d in dicts for k, v in d.items()}  # merge dicts
     return data
 
 
-def _get_state():
-    response = _query_rest_api('/state?address={}'.format(INTKEY_PREFIX))
+def _get_state(api_nb='-0'):
+    response = _query_rest_api('/state?address={}'.format(INTKEY_PREFIX), api_nb=api_nb)
     return response['data']
 
 
-def _query_rest_api(suffix='', data=None, headers=None, expected_code=200):
+def _query_rest_api(suffix='', data=None, headers=None, expected_code=200, api_nb='-0'):
     if headers is None:
         headers = {}
-    url = 'http://rest-api:8008' + suffix
+    url = 'http://rest-api{}:8008'.format(api_nb) + suffix
+    LOGGER.info('URL IS {}'.format(url))
     return _submit_request(urllib.request.Request(url, data, headers),
                            expected_code=expected_code)
 

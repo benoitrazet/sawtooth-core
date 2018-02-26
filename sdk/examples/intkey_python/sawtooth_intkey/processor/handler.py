@@ -27,10 +27,10 @@ from sawtooth_sdk.processor.exceptions import InternalError
 LOGGER = logging.getLogger(__name__)
 
 
-VALID_VERBS = 'set', 'inc', 'dec'
+VALID_VERBS = 'set', 'inc', 'dec', 'append'
 
 MIN_VALUE = 0
-MAX_VALUE = 4294967295
+MAX_VALUE = 100000000000000000000000000000000
 MAX_NAME_LENGTH = 20
 
 FAMILY_NAME = 'intkey'
@@ -103,7 +103,7 @@ def _decode_transaction(transaction):
 
 def _validate_verb(verb):
     if verb not in VALID_VERBS:
-        raise InvalidTransaction('Verb must be "set", "inc", or "dec"')
+        raise InvalidTransaction('Verb must be "set", "inc", "dec", or "append"')
 
 
 def _validate_name(name):
@@ -132,7 +132,7 @@ def _get_state_data(name, context):
     except IndexError:
         return {}
     except:
-        raise InternalError('Failed to load state data')
+        raise InvalidTransaction('Failed to load state data')
 
 
 def _set_state_data(name, state, context):
@@ -143,7 +143,7 @@ def _set_state_data(name, state, context):
     addresses = context.set_state({address: encoded})
 
     if not addresses:
-        raise InternalError('State error')
+        raise InvalidTransaction('State error')
 
 
 def _do_intkey(verb, name, value, state):
@@ -151,13 +151,14 @@ def _do_intkey(verb, name, value, state):
         'set': _do_set,
         'inc': _do_inc,
         'dec': _do_dec,
+        'append': _do_append
     }
 
     try:
         return verbs[verb](name, value, state)
     except KeyError:
         # This would be a programming error.
-        raise InternalError('Unhandled verb: {}'.format(verb))
+        raise InvalidTransaction('Unhandled verb: {}'.format(verb))
 
 
 def _do_set(name, value, state):
@@ -218,3 +219,27 @@ def _do_dec(name, value, state):
     updated[name] = decd
 
     return updated
+
+# the append verb is a new verb that allows to preserve the order of
+# transactions executed, which either inc or dec would not do, due to
+# the commutative and associative nature of integer addition.
+def _do_append(name, value, state):
+    msg = 'Appending to "{n}" the value {v}'.format(n=name, v=value)
+    LOGGER.debug(msg)
+
+    if name not in state:
+        raise InvalidTransaction(
+            'Verb is "append" but name "{}" not in state'.format(name))
+
+    curr = state[name]
+    res = int(str(curr) + str(value))
+
+    # If the result is too big take the modulo
+    if res > MAX_VALUE:
+        res = res % 37
+    
+    updated = {k: v for k, v in state.items()}
+    updated[name] = res
+
+    return updated
+
