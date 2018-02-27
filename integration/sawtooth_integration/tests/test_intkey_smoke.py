@@ -34,7 +34,7 @@ from sawtooth_integration.tests.integration_tools import wait_for_rest_apis
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
-WAIT = 5
+WAIT = 20
 INTKEY_PREFIX = '1cf126'
 
 # Not associative commutative
@@ -44,6 +44,10 @@ class TestIntkeySmoke(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         wait_for_rest_apis(['rest-api-0:8008'])
+        wait_for_rest_apis(['rest-api-1:8008'])
+        wait_for_rest_apis(['rest-api-2:8008'])
+        wait_for_rest_apis(['rest-api-3:8008'])
+        wait_for_rest_apis(['rest-api-4:8008'])
 
     def test_intkey_smoke(self):
         '''
@@ -90,22 +94,34 @@ class TestIntkeySmoke(unittest.TestCase):
         #     self.post_and_verify(batch, how_many_updates)
 
         init_append()
+        # send 25 append intkey transactions
         send_append('-0', 10)
-        send_append('-1', 110)
-        send_append('-2', 2220)
-        send_append('-3', 33330)
-        send_append('-4', 444440)
-        send_append('-0', 8888880)
-        send_append('-1', 11111110)
-        send_append('-2', 222222220)
-        send_append('-4', 4444444440)
-        send_append('-3', 33333333330)
-        send_append('-3', 333333333330)
-        send_append('-0', 8888888888880)
-        send_append('-2', 22222222222220)
-        log_all_appends()
-        
-        self.assertEqual(res,'')
+        send_append('-1', 20)
+        send_append('-2', 30)
+        send_append('-3', 40)
+        send_append('-4', 50)
+        send_append('-0', 60)
+        send_append('-1', 70)
+        send_append('-2', 80)
+        send_append('-4', 90)
+        send_append('-3', 100)
+        send_append('-3', 110)
+        send_append('-0', 120)
+        send_append('-2', 130)
+        send_append('-2', 140)
+        send_append('-0', 150)
+        send_append('-1', 160)
+        send_append('-1', 170)
+        send_append('-1', 180)
+        send_append('-2', 190)
+        send_append('-2', 200)
+        send_append('-4', 210)
+        send_append('-3', 220)
+        send_append('-4', 230)
+        send_append('-1', 240)
+        send_append('-3', 250)
+        sleep(10)
+        self.assertEqual(log_all_appends(), 1)
 
     # assertions
 
@@ -141,22 +157,24 @@ class TestIntkeySmoke(unittest.TestCase):
 
 # rest_api calls
 
+# Initialize the NASSCOM address in Inkey to 0
 def init_append():
     triple = ('set', NASSCOM, 0)
     batch = IntkeyMessageFactory().create_batch([triple])
     LOGGER.info('Posting batch')
     _post_batch(batch)
     
-
+# Send an `append` verb with a given value to a specific REST api
 def send_append(api_nb, value):
     triple = ('append', NASSCOM, value)
     batch = IntkeyMessageFactory().create_batch([triple])
     LOGGER.info('Posting batch')
     _post_batch(batch, api_nb=api_nb)
-    sleep(5)
+    sleep(2)
     log_all_appends()
-    sleep(5)
+    sleep(2)
 
+# Query each rest-api to find out the value associated with NASSCOM key on different validators
 def log_all_appends():
     res0 = _get_data(api_nb='-0')
     res1 = _get_data(api_nb='-1')
@@ -166,7 +184,11 @@ def log_all_appends():
     r = [res0,res1,res2,res3,res4]
     LOGGER.info('\n V0 {} \n V1 {} \n V2 {}, \n V3 {}, \n V4 {}'.format(r[0], r[1], r[2], r[3], r[4]))
     LOGGER.info('The nasscom value for each validator should be the same')
-
+    branches = set()
+    for res in r:
+        branches.add(res['nasscom'])
+    LOGGER.info('There are {} different branches.'.format(len(branches)))
+    return branches
     
 def _post_batch(batch, api_nb='-0'):
     headers = {'Content-Type': 'application/octet-stream'}

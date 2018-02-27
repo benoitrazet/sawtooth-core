@@ -234,9 +234,9 @@ def _do_append(name, value, state):
     curr = state[name]
     res = int(str(curr) + str(value))
 
-    # If the result is too big take the modulo
+    # If the result is too big take the modulo 17 and multiply by 10
     if res > MAX_VALUE:
-        res = res % 37
+        res = (res % 17) * 10
     
     updated = {k: v for k, v in state.items()}
     updated[name] = res
