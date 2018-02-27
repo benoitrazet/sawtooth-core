@@ -94,7 +94,7 @@ class TestIntkeySmoke(unittest.TestCase):
         #     self.post_and_verify(batch, how_many_updates)
 
         init_append()
-        # send 25 append intkey transactions
+        # send 25 append intkey transactions. The choice for picking the rest-api is arbitrary
         send_append('-0', 10)
         send_append('-1', 20)
         send_append('-2', 30)
@@ -188,7 +188,7 @@ def log_all_appends():
     for res in r:
         branches.add(res['nasscom'])
     LOGGER.info('There are {} different branches.'.format(len(branches)))
-    return branches
+    return len(branches)
     
 def _post_batch(batch, api_nb='-0'):
     headers = {'Content-Type': 'application/octet-stream'}
