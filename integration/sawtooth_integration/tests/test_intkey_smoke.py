@@ -24,6 +24,7 @@ import urllib.error
 import json
 from base64 import b64decode
 from time import sleep
+import random
 
 import cbor
 
@@ -93,34 +94,40 @@ class TestIntkeySmoke(unittest.TestCase):
         #         how_many_updates += 1
         #     self.post_and_verify(batch, how_many_updates)
 
-        init_append()
-        # send 25 append intkey transactions. The choice for picking the rest-api is arbitrary
-        send_append('-0', 10)
-        send_append('-1', 20)
-        send_append('-2', 30)
-        send_append('-3', 40)
-        send_append('-4', 50)
-        send_append('-0', 60)
-        send_append('-1', 70)
-        send_append('-2', 80)
-        send_append('-4', 90)
-        send_append('-3', 100)
-        send_append('-3', 110)
-        send_append('-0', 120)
-        send_append('-2', 130)
-        send_append('-2', 140)
-        send_append('-0', 150)
-        send_append('-1', 160)
-        send_append('-1', 170)
-        send_append('-1', 180)
-        send_append('-2', 190)
-        send_append('-2', 200)
-        send_append('-4', 210)
-        send_append('-3', 220)
-        send_append('-4', 230)
-        send_append('-1', 240)
-        send_append('-3', 250)
-        sleep(10)
+        sleep(15)
+        init_append(90000950) # 90000950 is the initial value. the 4-digit number between the 2 nine is the number of append operations done at nasscom address.
+
+        # This test scenario is split into 2 components
+        # 1) send 25 append intkey transactions. The choice for picking the rest-api is arbitrary
+        # 2) submit transactions as fast as possible
+        send_append('-0', 1)
+        send_append('-1', 2)
+        send_append('-2', 3)
+        send_append('-3', 4)
+        send_append('-4', 5)
+        #send_append5()
+        send_append('-0', 6)
+        send_append('-1', 7)
+        send_append('-2', 8)
+        send_append('-4', 9)
+        send_append('-3', 1)
+        send_append('-3', 2)
+        send_append('-0', 3)
+        send_append('-2', 4)
+        send_append('-2', 5)
+        send_append('-0', 6)
+        send_append('-1', 7)
+        send_append('-1', 8)
+        send_append('-1', 9)
+        send_append('-2', 1)
+        send_append('-2', 2)
+        send_append('-4', 3)
+        send_append('-3', 4)
+        send_append('-4', 5)
+        send_append('-1', 6)
+        send_append('-3', 7)
+        loop_test()
+        sleep(3)
         self.assertEqual(log_all_appends(), 1)
 
     # assertions
@@ -158,8 +165,8 @@ class TestIntkeySmoke(unittest.TestCase):
 # rest_api calls
 
 # Initialize the NASSCOM address in Inkey to 0
-def init_append():
-    triple = ('set', NASSCOM, 0)
+def init_append(value):
+    triple = ('set', NASSCOM, value)
     batch = IntkeyMessageFactory().create_batch([triple])
     LOGGER.info('Posting batch')
     _post_batch(batch)
@@ -168,12 +175,53 @@ def init_append():
 def send_append(api_nb, value):
     triple = ('append', NASSCOM, value)
     batch = IntkeyMessageFactory().create_batch([triple])
-    LOGGER.info('Posting batch')
+    LOGGER.info('SENDING TRANSACTION ')
     _post_batch(batch, api_nb=api_nb)
     sleep(2)
     log_all_appends()
-    sleep(2)
+    # sleep(2)
 
+# Send an `append` verb with a given value to a specific REST api
+def send_append5():
+    triple0 = ('append', NASSCOM, 500)
+    batch0 = IntkeyMessageFactory().create_batch([triple0])
+    triple1 = ('append', NASSCOM, 510)
+    batch1 = IntkeyMessageFactory().create_batch([triple1])
+    triple2 = ('append', NASSCOM, 520)
+    batch2 = IntkeyMessageFactory().create_batch([triple2])
+    triple3 = ('append', NASSCOM, 530)
+    batch3 = IntkeyMessageFactory().create_batch([triple3])
+    triple4 = ('append', NASSCOM, 540)
+    batch4 = IntkeyMessageFactory().create_batch([triple4])
+    _post_batch_no_wait(batch0, api_nb='-4')
+    _post_batch_no_wait(batch1, api_nb='-3')
+    _post_batch_no_wait(batch2, api_nb='-2')
+    _post_batch_no_wait(batch3, api_nb='-1')
+    _post_batch_no_wait(batch4, api_nb='-0')
+    sleep(1)
+    log_all_appends()
+    sleep(1)
+
+# A loop that sends as many transactions to random validators (it
+# pauses when rest-api is overloaded)
+def loop_test():
+    i = 0
+    for i in range(0,10000):
+        validator = random.randint(0, 5)
+        value = (i % 9 + 1) 
+        triple0 = ('append', NASSCOM, value)
+        batch0 = IntkeyMessageFactory().create_batch([triple0])
+        try:
+            _post_batch_no_wait(batch0, api_nb='-'+str(validator))
+        except: # when the REST-api is overwhelmed, sleep for a bit.
+            sleep(random.random()/10)
+            pass
+        
+        if i % 19 == 0:
+            LOGGER.info('Txn {}'.format(i))
+            #sleep(random.random()/100)
+            log_all_appends()
+        
 # Query each rest-api to find out the value associated with NASSCOM key on different validators
 def log_all_appends():
     res0 = _get_data(api_nb='-0')
@@ -198,6 +246,13 @@ def _post_batch(batch, api_nb='-0'):
     response = _submit_request('{}&wait={}'.format(response['link'], WAIT))
     return response
 
+def _post_batch_no_wait(batch, api_nb='-0'):
+    headers = {'Content-Type': 'application/octet-stream'}
+    response = _query_rest_api(
+        '/batches',
+        data=batch, headers=headers, expected_code=202, api_nb=api_nb)
+    #response = _submit_request('{}'.format(response['link']))
+    return response
 
         
 
@@ -218,7 +273,7 @@ def _query_rest_api(suffix='', data=None, headers=None, expected_code=200, api_n
     if headers is None:
         headers = {}
     url = 'http://rest-api{}:8008'.format(api_nb) + suffix
-    LOGGER.info('URL IS {}'.format(url))
+    # LOGGER.info('URL IS {}'.format(url))
     return _submit_request(urllib.request.Request(url, data, headers),
                            expected_code=expected_code)
 

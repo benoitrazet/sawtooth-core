@@ -102,7 +102,7 @@ services:
           -o poet-settings.batch && \
         sawadm genesis \
           config-genesis.batch config.batch poet.batch poet-settings.batch && \
-        sawtooth-validator -v
+        sawtooth-validator
     \""
     environment:
       PYTHONPATH: "/project/sawtooth-core/consensus/poet/common:\
@@ -121,7 +121,7 @@ services:
     command: "bash -c \"\
         cp /project/sawtooth-core/integration/sawtooth_integration/tests/poet_liveness_data/validator-1.toml /etc/sawtooth/validator.toml && \
         sawadm keygen --force && \
-        sawtooth-validator -v
+        sawtooth-validator
     \""
     environment:
       PYTHONPATH: "/project/sawtooth-core/consensus/poet/common:\
@@ -140,7 +140,7 @@ services:
     command: "bash -c \"\
         cp /project/sawtooth-core/integration/sawtooth_integration/tests/poet_liveness_data/validator-2.toml /etc/sawtooth/validator.toml && \
         sawadm keygen --force && \
-        sawtooth-validator -v
+        sawtooth-validator
     \""
     environment:
       PYTHONPATH: "/project/sawtooth-core/consensus/poet/common:\
@@ -159,7 +159,7 @@ services:
     command: "bash -c \"\
         cp /project/sawtooth-core/integration/sawtooth_integration/tests/poet_liveness_data/validator-3.toml /etc/sawtooth/validator.toml && \
         sawadm keygen --force && \
-        sawtooth-validator -v
+        sawtooth-validator
     \""
     environment:
       PYTHONPATH: "/project/sawtooth-core/consensus/poet/common:\
@@ -178,7 +178,7 @@ services:
     command: "bash -c \"\
         cp /project/sawtooth-core/integration/sawtooth_integration/tests/poet_liveness_data/validator-4.toml /etc/sawtooth/validator.toml && \
         sawadm keygen --force && \
-        sawtooth-validator -v
+        sawtooth-validator
     \""
     environment:
       PYTHONPATH: "/project/sawtooth-core/consensus/poet/common:\

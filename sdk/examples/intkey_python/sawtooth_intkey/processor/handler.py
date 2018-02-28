@@ -30,7 +30,7 @@ LOGGER = logging.getLogger(__name__)
 VALID_VERBS = 'set', 'inc', 'dec', 'append'
 
 MIN_VALUE = 0
-MAX_VALUE = 100000000000000000000000000000000
+MAX_VALUE = 1000000000000000000000000000000000000000000000
 MAX_NAME_LENGTH = 20
 
 FAMILY_NAME = 'intkey'
@@ -234,9 +234,42 @@ def _do_append(name, value, state):
     curr = state[name]
     res = int(str(curr) + str(value))
 
-    # If the result is too big take the modulo 17 and multiply by 10
+    # The following sequence of code describe what value is stored onchain.
+    # The number will follow the following format
+    # 9XXXX9Y0ZZZZ....
+    # where
+    # XXXX is a counter that keeps track of the number of append transactions, encode with 4-digits,
+    # Y is a somewhat random number that won't change for about 10 append operations
+    # ZZZZ... is made of previous value stored and the `value` of the transaction.
+
+    # For example if the value stored is
+    # 9002593033333
+    # and the value in the payload of the transaction is 55 then the value stored is
+    # 900269303333355
+
+    # This number design allows to monitor the number of appends
+    # transactions that went through (XXXX) and monitor easily forking
+    # (Y0ZZZZ...).
+    str_res = str(res)
+    nb_txns = str_res[1:5]
+    nb_txns = int(nb_txns) + 1
+    nb_txns = str(nb_txns)
+    l = len(nb_txns)
+    if l == 1:
+        nb_txns = '000' + nb_txns
+    elif l == 2:
+        nb_txns = '00' + nb_txns
+    elif l == 3:
+        nb_txns = '0' + nb_txns
+    elif l == 4:
+        nb_txns = nb_txns
+    else:
+        raise InvalidTransaction('SDDFDSFDSFSDF')
+    
     if res > MAX_VALUE:
-        res = (res % 17) * 10
+        res = int('9' + nb_txns + '9' + str(res % 7 * 10))
+    else:
+        res = int('9' + nb_txns + '9' + str_res[6:])
     
     updated = {k: v for k, v in state.items()}
     updated[name] = res
