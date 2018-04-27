@@ -913,14 +913,17 @@ class ConsensusState(object):
                     if z_score > maximum_win_deviation:
                         LOGGER.info(
                             'Validator %s (ID=%s...%s): zTest failed at depth '
-                            '%d, z_score=%f, expected=%f, observed=%d',
+                            '%d, z_score=%f, expected=%f, observed=%d, ztest_maximum_win_deviation=%f population estimate=%f',
                             validator_info.name,
                             validator_info.id[:8],
                             validator_info.id[-8:],
                             block_count,
                             z_score,
                             expected_wins,
-                            observed_wins)
+                            observed_wins,
+                            maximum_win_deviation,
+                            estimate_info.population_estimate,
+                        )
                         return True
 
         LOGGER.debug(

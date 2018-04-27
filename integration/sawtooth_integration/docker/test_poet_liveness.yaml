@@ -53,18 +53,18 @@ services:
         /project/sawtooth-core/signing:\
         /project/sawtooth-core/cli"
 
-  smallbank-workload:
-    image: sawtooth-dev-python:$ISOLATION_ID
-    volumes:
-      - $SAWTOOTH_CORE:/project/sawtooth-core
-    expose:
-      - 8008
-    command: "bash -c \"\
-      sawtooth keygen smallbank-key; \
-      while true; do curl -s http://rest-api-0:8008/state | grep -q head; if [ $$? -eq 0 ]; then break; fi; sleep 0.5; done; \
-      /project/sawtooth-core/perf/smallbank_workload/bin/smallbank-workload load --key /root/.sawtooth/keys/smallbank-key.priv --rate 1 --target http://rest-api-0:8008,http://rest-api-1:8008,http://rest-api-2:8008,http://rest-api-3:8008,http://rest-api-4:8008 \
-      \""
-    stop_signal: SIGKILL
+  # smallbank-workload:
+  #   image: sawtooth-dev-python:$ISOLATION_ID
+  #   volumes:
+  #     - $SAWTOOTH_CORE:/project/sawtooth-core
+  #   expose:
+  #     - 8008
+  #   command: "bash -c \"\
+  #     sawtooth keygen smallbank-key; \
+  #     while true; do curl -s http://rest-api-0:8008/state | grep -q head; if [ $$? -eq 0 ]; then break; fi; sleep 0.5; done; \
+  #     /project/sawtooth-core/perf/smallbank_workload/bin/smallbank-workload load --key /root/.sawtooth/keys/smallbank-key.priv --rate 1 --target http://rest-api-0:8008,http://rest-api-1:8008,http://rest-api-2:8008,http://rest-api-3:8008,http://rest-api-4:8008 \
+  #     \""
+  #   stop_signal: SIGKILL
 
   validator-0:
     image: sawtooth-validator:$ISOLATION_ID
@@ -135,7 +135,7 @@ services:
     command: "bash -c \"\
         cp /project/sawtooth-core/integration/sawtooth_integration/tests/poet_liveness_data/validator-2.toml /etc/sawtooth/validator.toml && \
         sawadm keygen --force && \
-        sawtooth-validator -v
+        sawtooth-validator -vv
     \""
     environment:
       PYTHONPATH: "/project/sawtooth-core/consensus/poet/common:\

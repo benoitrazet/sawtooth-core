@@ -15,8 +15,12 @@
 # ------------------------------------------------------------------------------
 
 settings=""
-settings="$settings sawtooth.poet.target_wait_time=5"
-settings="$settings sawtooth.poet.initial_wait_time=25"
+settings="$settings sawtooth.poet.target_wait_time=2"
+settings="$settings sawtooth.poet.initial_wait_time=10"
 settings="$settings sawtooth.publisher.max_batches_per_block=100"
+settings="$settings sawtooth.poet.ztest_maximum_win_deviation=2.5"
+settings="$settings sawtooth.poet.ztest_minimum_win_count=1"
+settings="$settings sawtooth.poet.population_estimate_sample_size=50"
+settings="$settings sawtooth.poet.key_block_claim_limit=100"
 
 echo "$settings"
